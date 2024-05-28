@@ -4,23 +4,35 @@ const mongoose = require('mongoose')
 const express = require('express')
 const app = express()
 const {createtodo, updateTodo} = require('./types')
+const {todo} = require('./db')
 app.use(express.json())
-
-app.post('/todos', (req,res)=>{
+app.use(bodyParser.json())
+app.post('/todos', async (req,res)=>{
     const todopayload = req.body
-    const todo = createtodo.safeParse(todopayload)
-    if(!todo.success){
+    const parsedtodo = createtodo.safeParse(todopayload)
+    if(!parsedtodo.success){
         res.status(411).json({error: todo.error})
         return
     }
+    await todo.create({
+        title: parsedtodo.title,
+        description: parsedtodo.description,
+        completed: false
+    })
 
-    //save in db
-
+    res.status(200).json({
+        message: 'Todo created successfully'
+    })
 })
-app.get('/todos', (req,res)=>{
 
+app.get('/todos', async (req,res)=>{
+    const Alltodos = await todo.find()
+    res.status(200).json({
+        Todos: Alltodos
+    })
 })
-app.put('/completed', (req,res)=>{
+
+app.put('/completed', async (req,res)=>{
     const updatedPayload = req.body
     const parsedPayload = updateTodo.safeParse(updatedPayload)
     if(!parsedPayload.success){
@@ -28,6 +40,13 @@ app.put('/completed', (req,res)=>{
         return
     }
     //update in db
-
+    await todo.update({
+        _id: req.body.id
+    },{
+        completed: true
+    })
+    res.status(200).json({
+        msg: 'Todo updated successfully'
+    })
 })
 app.listen(3000)
